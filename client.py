@@ -7,16 +7,18 @@ def listener():
     while True:
         message = s.recv(16)
         if message:
-            print("Received: ", message)
+            process_message(message)
 
+def process_message(message):
+    board.move(message)
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((socket.gethostname(), port))
+def start_connection():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((socket.gethostname(), port))
 
-t = threading.Thread(target=listener)
-t.start()
+    t = threading.Thread(target=listener)
+    t.start()
 
-msg = input()
-if msg == "send":
-    s.send(bytes("Hello", "utf-8"))
+def send(server, message):
+    server.send(bytes(message, "utf-8"))
 
