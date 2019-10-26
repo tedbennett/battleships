@@ -7,24 +7,24 @@ class Ship:
         self._start = start
         self._end = end
         self._colour = colour
-        self._phase = "not placed"
-        self._array = []
+        self.status = "not placed"
+        self.array = []
         self.create_array(self._start, self._end)
-        self._size = len(self._array)
+        self.size = len(self.array)
 
     def create_array(self, start, end):
-        self._array = []
+        self.array = []
         x, y = start
         if start[0] == end[0]:
             for y in range(start[1], end[1] + 1):
-                self._array.append((x, y))
+                self.array.append((x, y))
 
         elif start[1] == end[1]:
             for x in range(start[0], end[0] + 1):
-                self._array.append((x, y))
+                self.array.append((x, y))
 
     def draw_ship(self, screen):
-        for position in self._array:
+        for position in self.array:
             if self._colour != BLACK:
                 pygame.draw.rect(screen, self._colour, self.get_rect(position))
 
@@ -51,18 +51,18 @@ class Ship:
         self._end = temp_end
 
     def get_size(self):
-        return self._size
+        return self.size
 
     def _set_colour(self, colour):
         self._colour = colour
 
-    def set_phase(self, phase):
-        self._phase = phase
-        if self._phase == "not placed":
+    def set_status(self, phase):
+        self.status = phase
+        if self.status == "not placed":
             self._set_colour(BLACK)
-        if self._phase == "moving":
+        if self.status == "moving":
             self._set_colour(WHITE)
-        if self._phase == "placed":
+        if self.status == "placed":
             self._set_colour(LIGHTGREY)
 
     def _check_boundaries(self, start, end):
@@ -76,17 +76,17 @@ class Ship:
 
     def check_collision(self, ships):
         for ship in ships:
-            if ship.get_phase() == "placed":
+            if ship.get_status() == "placed":
                 for position in self.get_array():
                     if position in ship.get_array():
                         return True
         return False
 
     def get_array(self):
-        return self._array
+        return self.array
 
-    def get_phase(self):
-        return self._phase
+    def get_status(self):
+        return self.status
 
     def __getitem__(self, item):
-        return self._array[item]
+        return self.array[item]
