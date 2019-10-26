@@ -3,9 +3,9 @@ import threading
 from server import port
 
 
-def listener():
+def listener(server):
     while True:
-        message = s.recv(16)
+        message = server.recv(16)
         if message:
             process_message(message)
 
@@ -16,7 +16,7 @@ def start_connection():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((socket.gethostname(), port))
 
-    t = threading.Thread(target=listener)
+    t = threading.Thread(target=listener, args=s)
     t.start()
 
 def send(server, message):
