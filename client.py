@@ -1,35 +1,54 @@
+import json
 import socket
-import threading
-from server import port
+import pickle
+import time
 
 
-class Client:
-    def __init__(self, board):
-        self.s = None
-        self.start_connection()
-        self.board = board
+class Network:
+    def __init__(self):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.host = "192.168.68.118"
+        self.port = 5555
+        self.addr = (self.host, self.port)
 
-    def listener(self):
-        while True:
-            message = self.s.recv(16).decode("utf-8")
-            if message == "end of turn":
-                print(message)
-                self.board.change_turn()
+    def connect(self):
+        self.client.connect(self.addr)
+        print("connected")
+        return self.client.recv(4096*8)
 
-    def start_connection(self):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((socket.gethostname(), port))
+    def disconnect(self):
+        self.client.close()
 
-        t = threading.Thread(target=self.listener)
-        t.start()
+    def send(self, data, pick=True):
+        """
+        :param data: str
+        :return: str
+        """
+        print("we out here")
+        start_time = time.time()
+        while time.time() - start_time < 5:
+            try:
+                self.client.send(json.dumps(data).encode("utf-8"))
+                reply = self.client.recv(4096*8)
+                try:
+                    reply = json.loads(reply)
+                    print("Reply loaded")
+                    break
+                except Exception as e:
+                    print(e)
 
-    def send(self, message):
-        if not self.s:
-            self.start_connection()
-        self.s.send(bytes(message, "utf-8"))
+            except socket.error as e:
+                print(e)
+
+
+        return reply
 
 
 if __name__ == "__main__":
-    client = Client()
-    client.send("Hello")
-
+    network = Network()
+    print(network.connect())
+    print("now send")
+    while True:
+        reply = network.send({"message": "Hello"})
+        print("Response: ", reply)
+        time.sleep(15)
