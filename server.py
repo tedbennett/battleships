@@ -52,7 +52,7 @@ def threaded_client(conn, addr, spec=False):
         else:
             currentId = "B"
         data_string = f"Welcome player {currentId}"
-        conn.send(pickle.dumps(data_string))
+        conn.send(json.dumps(data_string).encode("utf-8"))
         # bo.start_user = currentId
         #
         # # Pickle the object and send it to the server
@@ -66,19 +66,16 @@ def threaded_client(conn, addr, spec=False):
         connections += 1
 
         while True:
-            print("hello")
             try:
                 d = conn.recv(8192 * 3)
                 data = json.loads(d.decode("utf-8"))
-                print("decoded")
                 if not d:
                     break
-
-                    # print("Recieved board from", currentId, "in game", game)
                 send_data = json.dumps(data).encode("utf-8")
-                print("Sending board to player", currentId, "at ", addr)
-
-                conn.sendall(send_data)
+                for connection in conns.keys():
+                    if connection != conn:
+                        connection.sendall(send_data)
+                        print("Sending move to player", currentId, "at ", conns[connection])
 
             except Exception as e:
                 print(e)
@@ -87,35 +84,11 @@ def threaded_client(conn, addr, spec=False):
         print("[DISCONNECT] Player", name, "left game")
         conn.close()
 
-
+conns = {}
 while True:
-    # read_specs()
     if connections < 2:
         conn, addr = s.accept()
-        spec = False
-        # g = -1
+        conns[conn] = addr
         print("[CONNECT] New connection")
-
-        # for game in games.keys():
-        #     if games[game].ready == False:
-        #         g = game
-
-        # if g == -1:
-        #     try:
-        #         g = list(games.keys())[-1] + 1
-        #         games[g] = Board(8, 8)
-        #     except:
-        #         g = 0
-        #         games[g] = Board(8, 8)
-
-        '''if addr[0] in spectartor_ids and specs == 0:
-            spec = True
-            print("[SPECTATOR DATA] Games to view: ")
-            print("[SPECTATOR DATA]", games.keys())
-            g = 0
-            specs += 1'''
-
-        print("[DATA] Number of Connections:", connections + 1)
-        # print("[DATA] Number of Games:", len(games))
 
         start_new_thread(threaded_client, (conn, addr))

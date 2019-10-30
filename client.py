@@ -2,6 +2,7 @@ import json
 import socket
 import pickle
 import time
+from _thread import *
 
 
 class Network:
@@ -20,35 +21,26 @@ class Network:
         self.client.close()
 
     def send(self, data, pick=True):
-        """
-        :param data: str
-        :return: str
-        """
-        print("we out here")
-        start_time = time.time()
-        while time.time() - start_time < 5:
-            try:
-                self.client.send(json.dumps(data).encode("utf-8"))
-                reply = self.client.recv(4096*8)
-                try:
-                    reply = json.loads(reply)
-                    print("Reply loaded")
-                    break
-                except Exception as e:
-                    print(e)
-
-            except socket.error as e:
-                print(e)
+        self.client.send(json.dumps(data).encode("utf-8"))
+        return
 
 
+    def listen(self):
+        print("listening")
+        reply = None
+        while not reply:
+            reply = self.client.recv(4096 * 8)
+            if reply:
+                reply = json.loads(reply)
+                print("Reply loaded")
         return reply
 
 
 if __name__ == "__main__":
     network = Network()
     print(network.connect())
-    print("now send")
     while True:
-        reply = network.send({"message": "Hello"})
+        network.send({"message": "Hello"})
+        reply = network.listen()
         print("Response: ", reply)
         time.sleep(15)

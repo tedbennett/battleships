@@ -3,7 +3,7 @@ import time
 import pygame
 from ship import Ship
 from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKGREY
-from client import Client
+from client import Network
 
 class Board:
     def __init__(self):
@@ -74,7 +74,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Battleship")
 running = True
 board = Board()
-client = Client(board)
+client = Network()
+client.connect()
 ships = [Ship((0, 0), (4, 0), WHITE),
          Ship((0, 0), (3, 0), BLACK),
          Ship((0, 0), (2, 0), BLACK),
