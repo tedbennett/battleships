@@ -4,41 +4,36 @@ from threading import Thread
 
 def accept_incoming_connections():
     """Sets up handling for incoming clients."""
+    num_clients = 0
     while True:
         client, client_address = SERVER.accept()
-        print("%s:%s has connected." % client_address)
-        client.send(bytes("Greetings! Now type your name and press enter!", "utf8"))
         addresses[client] = client_address
+        print("%s:%s has connected." % client_address)
         Thread(target=handle_client, args=(client,)).start()
 
 
 def handle_client(client):
     """Handles a single client connection."""
-
-    name = client.recv(BUFSIZ).decode("utf8")
-    welcome = 'Welcome %s! If you ever want to quit, type {quit} to exit.' % name
-    client.send(bytes(welcome, "utf8"))
-    msg = "%s has joined the chat!" % name
-    broadcast(bytes(msg, "utf8"))
+    name = str(len(clients) + 1)
     clients[client] = name
+    broadcast(name, bytes("JOIN", "utf8"))
 
     while True:
         msg = client.recv(BUFSIZ)
         if msg != bytes("{quit}", "utf8"):
-            broadcast(msg, name + ": ")
+            broadcast(name, msg)
         else:
-            client.send(bytes("{quit}", "utf8"))
             client.close()
             del clients[client]
-            broadcast(bytes("%s has left the chat." % name, "utf8"))
+            print("%s:%s has connected." % addresses[client])
+            broadcast(name, bytes("EXIT", "utf8"))
             break
 
 
-def broadcast(msg, prefix=""):
+def broadcast(name, msg):
     """Broadcasts a message to all the clients."""
-
     for sock in clients:
-        sock.send(bytes(prefix, "utf8") + msg)
+        sock.send(bytes(name + ",", "utf8") + msg)
 
 
 clients = {}

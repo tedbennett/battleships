@@ -5,11 +5,33 @@ from threading import Thread
 
 def receive():
     """Handles receiving of messages."""
+    name = None
     while True:
         try:
             msg = client_socket.recv(BUFSIZ).decode("utf8")
-            print(msg)
-        except OSError:  # Possibly client has left the chat.
+            msg = msg.split(',')
+            if len(msg) == 2 and name is None:
+                name = msg[0]
+                print("Joined the game as Player {}".format(name))
+            print("received {}".format(msg))
+            if msg[0] == name:
+                if msg[1] == "MOVE":
+                    x = int(msg[2])
+                    y = int(msg[3])
+                    print("move: {}, {}".format(x, y))
+                    # say a piece is at 1,2
+                    if (x, y) == (1, 2):
+                        send("RESP,HIT".format(name))
+                    else:
+                        send("RESP,MISS".format(name))
+                elif msg[1] == "RESP":
+                    if msg[2] == "HIT":
+                        print("HIT")
+                    elif msg[2] == "MISS":
+                        print("MISS")
+
+
+        except OSError:
             break
 
 
@@ -18,7 +40,6 @@ def send(message):
     client_socket.send(bytes(message, "utf8"))
 
 
-# ----Now comes the sockets part----
 HOST = "127.0.0.1"
 PORT = 33000
 
@@ -32,9 +53,10 @@ receive_thread = Thread(target=receive)
 receive_thread.start()
 
 while True:
-    message = input()
+    x = input("x: ")
+    y = input("y: ")
+    message = "MOVE,{},{}".format(x, y)
     if message is not "{quit}":
         send(message)
     else:
         client_socket.close()
-
