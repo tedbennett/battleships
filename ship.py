@@ -26,13 +26,12 @@ class Ship:
     def draw_ship(self, screen):
         for position in self.array:
             if self._colour != BLACK:
-                pygame.draw.rect(screen, self._colour, self.get_rect(position))
-
-    def get_rect(self, position):
-        return pygame.Rect(position[0] * SCREEN_WIDTH / 10,
-                           position[1] * SCREEN_HEIGHT / 10,
-                           SCREEN_WIDTH / 10,
-                           SCREEN_HEIGHT / 10)
+                pygame.draw.rect(screen, self._colour,
+                                 pygame.Rect(position[0] * SCREEN_WIDTH / 10,
+                                             position[1] * SCREEN_HEIGHT / 10,
+                                             SCREEN_WIDTH / 10,
+                                             SCREEN_HEIGHT / 10)
+                                 )
 
     def translate(self, change):
         temp_start = (change[0] + self._start[0], change[1] + self._start[1])

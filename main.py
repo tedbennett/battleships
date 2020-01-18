@@ -1,7 +1,6 @@
 import pygame
-from ship import Ship
 from board import Board
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKG
 
 class Board:
     def __init__(self, screen):
-        self.phase = "placement"  # Can be placement, own_turn, opponent_turn
+        self.phase = "placement"  # Can be placement, player_turn, opponent_turn
         self.screen = screen
         self.ships = [Ship((0, 0), (4, 0), WHITE),
                       Ship((0, 0), (3, 0), BLACK),
