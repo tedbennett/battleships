@@ -1,94 +1,61 @@
-import json
-import socket
-from _thread import *
-import pickle
-import time
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-server = "192.168.68.118"
-port = 5555
-
-server_ip = socket.gethostbyname(server)
-
-try:
-    s.bind((server, port))
-
-except socket.error as e:
-    print(str(e))
-
-s.listen()
-print("[START] Waiting for a connection")
-
-connections = 0
-
-# games = {0: Board(8, 8)}
-
-# spectartor_ids = []
-# specs = 0
-#
-
-# def read_specs():
-#     global spectartor_ids
-#
-#     spectartor_ids = []
-#     try:
-#         with open("specs.txt", "r") as f:
-#             for line in f:
-#                 spectartor_ids.append(line.strip())
-#     except:
-#         print("[ERROR] No specs.txt file found, creating one...")
-#         open("specs.txt", "w")
+from socket import AF_INET, socket, SOCK_STREAM
+from threading import Thread
 
 
-def threaded_client(conn, addr, spec=False):
-    global pos, games, currentId, connections, specs
+def accept_incoming_connections():
+    """Sets up handling for incoming clients."""
+    while True:
+        client, client_address = SERVER.accept()
+        print("%s:%s has connected." % client_address)
+        client.send(bytes("Greetings! Now type your name and press enter!", "utf8"))
+        addresses[client] = client_address
+        Thread(target=handle_client, args=(client,)).start()
 
-    if not spec:
-        name = None
 
-        if connections % 2 == 0:
-            currentId = "A"
+def handle_client(client):
+    """Handles a single client connection."""
+
+    name = client.recv(BUFSIZ).decode("utf8")
+    welcome = 'Welcome %s! If you ever want to quit, type {quit} to exit.' % name
+    client.send(bytes(welcome, "utf8"))
+    msg = "%s has joined the chat!" % name
+    broadcast(bytes(msg, "utf8"))
+    clients[client] = name
+
+    while True:
+        msg = client.recv(BUFSIZ)
+        if msg != bytes("{quit}", "utf8"):
+            broadcast(msg, name + ": ")
         else:
-            currentId = "B"
-        data_string = f"Welcome player {currentId}"
-        conn.send(json.dumps(data_string).encode("utf-8"))
-        # bo.start_user = currentId
-        #
-        # # Pickle the object and send it to the server
-        # data_string = pickle.dumps(bo)
-        #
-        # if currentId == "A":
-        #     bo.ready = True
-        #     bo.startTime = time.time()
+            client.send(bytes("{quit}", "utf8"))
+            client.close()
+            del clients[client]
+            broadcast(bytes("%s has left the chat." % name, "utf8"))
+            break
 
-        # conn.send(data_string)
-        connections += 1
 
-        while True:
-            try:
-                d = conn.recv(8192 * 3)
-                data = json.loads(d.decode("utf-8"))
-                if not d:
-                    break
-                send_data = json.dumps(data).encode("utf-8")
-                for connection in conns.keys():
-                    if connection != conn:
-                        connection.sendall(send_data)
-                        print("Sending move to player", currentId, "at ", conns[connection])
+def broadcast(msg, prefix=""):
+    """Broadcasts a message to all the clients."""
 
-            except Exception as e:
-                print(e)
+    for sock in clients:
+        sock.send(bytes(prefix, "utf8") + msg)
 
-        connections -= 1
-        print("[DISCONNECT] Player", name, "left game")
-        conn.close()
 
-conns = {}
-while True:
-    if connections < 2:
-        conn, addr = s.accept()
-        conns[conn] = addr
-        print("[CONNECT] New connection")
+clients = {}
+addresses = {}
 
-        start_new_thread(threaded_client, (conn, addr))
+HOST = ''
+PORT = 33000
+BUFSIZ = 1024
+ADDR = (HOST, PORT)
+
+SERVER = socket(AF_INET, SOCK_STREAM)
+SERVER.bind(ADDR)
+
+if __name__ == "__main__":
+    SERVER.listen(5)
+    print("Waiting for connection...")
+    ACCEPT_THREAD = Thread(target=accept_incoming_connections)
+    ACCEPT_THREAD.start()
+    ACCEPT_THREAD.join()
+    SERVER.close()
