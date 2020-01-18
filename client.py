@@ -3,62 +3,67 @@ from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 
 
-def receive():
-    """Handles receiving of messages."""
-    name = None
-    while True:
-        try:
-            msg = client_socket.recv(BUFSIZ).decode("utf8")
-            msg = msg.split(',')
-            if len(msg) == 2:
-                if name is None:
-                    name = msg[0]
-                    print("Joined the game as Player {}".format(name))
-                elif msg[1] == "EXIT":
-                    name = msg[0]
-                    print("Player {} has left the game".format(name))
-            if msg[0] != name and msg[1] == "MOVE":
-                x = int(msg[2])
-                y = int(msg[3])
-                print("move: {}, {}".format(x, y))
-                # say a piece is at 1,2
-                if (x, y) == (1, 2):
-                    send("RESP,HIT".format(name))
-                else:
-                    send("RESP,MISS".format(name))
-            elif msg[0] == name and msg[1] == "RESP":
-                if msg[2] == "HIT":
-                    print("HIT")
-                elif msg[2] == "MISS":
-                    print("MISS")
+class Client:
+    def __init__(self):
+        self.name = None
+        self.client_socket = None
+        self.host = "127.0.0.1"
+        self.port = 33000
+        self.buffer_size = 1024
 
-        except OSError:
-            break
+        self.start_client()
+
+    def start_client(self):
+        self.client_socket = socket(AF_INET, SOCK_STREAM)
+        self.client_socket.connect(self.host, self.port)
+
+        receive_thread = Thread(target=self.receive)
+        receive_thread.start()
+
+        while True:
+            move = input()
+            message = "MOVE,{}".format(move)
+            if move != "-1,-1":
+                self.send(message)
+            else:
+                self.send("{quit}")
+                self.client_socket.close()
+                print("connection closed")
+
+    def receive(self):
+        """Handles receiving of messages."""
+        while True:
+            try:
+                message = self.client_socket.recv(self.buffer_size).decode("utf8")
+                message = message.split(',')
+                if len(message) == 2:
+                    if name is None:
+                        self.name = message[0]
+                        print("Joined the game as Player {}".format(self.name))
+                    elif message[1] == "EXIT":
+                        name = message[0]
+                        print("Player {} has left the game".format(self.name))
+                if message[0] != self.name and message[1] == "MOVE":
+                    x = int(message[2])
+                    y = int(message[3])
+                    print("move: {}, {}".format(x, y))
+                    # say a piece is at 1,2
+                    if (x, y) == (1, 2):
+                        self.send("RESP,HIT".format(self.name))
+                    else:
+                        self.send("RESP,MISS".format(self.name))
+                elif message[0] == self.name and message[1] == "RESP":
+                    if message[2] == "HIT":
+                        print("HIT")
+                    elif message[2] == "MISS":
+                        print("MISS")
+            except OSError:
+                break
+
+    def send(self, message):
+        """Handles sending of messages."""
+        self.client_socket.send(bytes(message, "utf8"))
 
 
-def send(message):
-    """Handles sending of messages."""
-    client_socket.send(bytes(message, "utf8"))
-
-
-HOST = "127.0.0.1"
-PORT = 33000
-
-BUFSIZ = 1024
-ADDR = (HOST, PORT)
-
-client_socket = socket(AF_INET, SOCK_STREAM)
-client_socket.connect(ADDR)
-
-receive_thread = Thread(target=receive)
-receive_thread.start()
-
-while True:
-    move = input()
-    message = "MOVE,{}".format(move)
-    if move != "-1,-1":
-        send(message)
-    else:
-        send("{quit}")
-        client_socket.close()
-        print("connection closed")
+if __name__ == "__main__":
+    client = Client()
