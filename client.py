@@ -10,26 +10,27 @@ def receive():
         try:
             msg = client_socket.recv(BUFSIZ).decode("utf8")
             msg = msg.split(',')
-            if len(msg) == 2 and name is None:
-                name = msg[0]
-                print("Joined the game as Player {}".format(name))
-            print("received {}".format(msg))
-            if msg[0] == name:
-                if msg[1] == "MOVE":
-                    x = int(msg[2])
-                    y = int(msg[3])
-                    print("move: {}, {}".format(x, y))
-                    # say a piece is at 1,2
-                    if (x, y) == (1, 2):
-                        send("RESP,HIT".format(name))
-                    else:
-                        send("RESP,MISS".format(name))
-                elif msg[1] == "RESP":
-                    if msg[2] == "HIT":
-                        print("HIT")
-                    elif msg[2] == "MISS":
-                        print("MISS")
-
+            if len(msg) == 2:
+                if name is None:
+                    name = msg[0]
+                    print("Joined the game as Player {}".format(name))
+                elif msg[1] == "EXIT":
+                    name = msg[0]
+                    print("Player {} has left the game".format(name))
+            if msg[0] != name and msg[1] == "MOVE":
+                x = int(msg[2])
+                y = int(msg[3])
+                print("move: {}, {}".format(x, y))
+                # say a piece is at 1,2
+                if (x, y) == (1, 2):
+                    send("RESP,HIT".format(name))
+                else:
+                    send("RESP,MISS".format(name))
+            elif msg[0] == name and msg[1] == "RESP":
+                if msg[2] == "HIT":
+                    print("HIT")
+                elif msg[2] == "MISS":
+                    print("MISS")
 
         except OSError:
             break
@@ -53,10 +54,11 @@ receive_thread = Thread(target=receive)
 receive_thread.start()
 
 while True:
-    x = input("x: ")
-    y = input("y: ")
-    message = "MOVE,{},{}".format(x, y)
-    if message is not "{quit}":
+    move = input()
+    message = "MOVE,{}".format(move)
+    if move != "-1,-1":
         send(message)
     else:
+        send("{quit}")
         client_socket.close()
+        print("connection closed")
