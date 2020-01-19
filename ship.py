@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 import pygame
 from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY
 
@@ -9,10 +10,10 @@ class Ship:
         self._colour = colour
         self.status = "not placed"
         self.array = []
-        self.create_array(self._start, self._end)
+        self._create_array(self._start, self._end)
         self.size = len(self.array)
 
-    def create_array(self, start, end):
+    def _create_array(self, start, end):
         self.array = []
         x, y = start
         if start[0] == end[0]:
@@ -38,7 +39,7 @@ class Ship:
         temp_end = (change[0] + self._end[0], change[1] + self._end[1])
         if not self._check_boundaries(temp_start, temp_end):
             return
-        self.create_array(temp_start, temp_end)
+        self._create_array(temp_start, temp_end)
         self._start, self._end = temp_start, temp_end
 
     def rotate(self):
@@ -46,7 +47,7 @@ class Ship:
         temp_end = (change[1] + self._start[0], change[0] + self._start[1])
         if not self._check_boundaries(self._start, temp_end):
             return
-        self.create_array(self._start, temp_end)
+        self._create_array(self._start, temp_end)
         self._end = temp_end
 
     def get_size(self):
@@ -59,9 +60,9 @@ class Ship:
         self.status = phase
         if self.status == "not placed":
             self._set_colour(BLACK)
-        if self.status == "moving":
+        elif self.status == "moving":
             self._set_colour(WHITE)
-        if self.status == "placed":
+        elif self.status == "placed":
             self._set_colour(LIGHTGREY)
 
     def _check_boundaries(self, start, end):
