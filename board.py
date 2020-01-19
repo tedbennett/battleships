@@ -16,7 +16,7 @@ class Board:
                        # Ship((0, 0), (1, 0), BLACK),
                        # Ship((0, 0), (1, 0), BLACK)]
 
-        self._ship_tiles = None
+        self.  = None
         self._opponent_guesses = self._init_guesses()
         self._player_guesses = self._init_guesses()
         self._opponent_ships = []
@@ -137,15 +137,49 @@ class Board:
 
     def process_guess(self, message):
         guess = (int(message[0]), int(message[1]))
-        if guess in self._ship_tiles:
-            response = "HIT"
-        else:
-            response = "MISS"
-        self._opponent_guesses[guess] = response
+        response = "MISS"
+        for idx, ship in self._ship_tiles.items():
+            if guess in ship:
+                response = "HIT,{}".format(idx)
+                self._opponent_guesses[idx].append(guess)
+                if len(self._opponent_guesses[idx]) == len(ship):
+                    response = "SINK,{}".format(idx)
+        if response == "MISS":
+            self._opponent_guesses["miss"].append(guess)
+
         return response
 
-    def process_response(self, message):
-        self._player_guesses[self._last_guess] = message
+    def process_response(self, name, message):
+        """ Receive response from server.
+            Update game state hits and misses and change the turn.
+            Can be treated as HIT, MISS or SINK."""
+        if name != self._player_name:
+            if message == "MISS":
+                self._player_guesses["miss"] = self._last_guess
+            elif message == "SINK":
+
+            self._player_guesses[self._last_guess] = message
+        time.sleep(1)
+        self.change_turn()
+
+    def _process_sink(self, name, message):
+        """ Update list of guesses of sunk ship
+            Search for start and end and create a new ship to be displayed as sunk
+        """
+        if name == self._player_name:
+            guesses =  self._opponent_guesses
+            ships = self._ships
+        else:
+            guesses =  self._player_guesses
+            ships = self._opponent_ships
+
+        sunk_ship = guesses[message]
+        sunk_ship.append(self._last_guess)
+        coords = [i[0] + i[1] for i in sunk_ship]
+        start, end = coords.index(min(coords)), coords.index(max(coords))
+        if name == self._player_name:
+            self._ships
+        ships.append(Ship(sunk_ship[start], sunk_ship[end], LIGHTGREY))
 
     def process_join(self, name):
         self._player_name = name
@@ -164,3 +198,25 @@ class Board:
         elif name == self._player_name:
             self.set_phase("waiting")
         self._game_ready = True
+
+
+    def process_message(self, message):
+        name = message[0]
+        if len(message) == 2:
+            if message[-1] == "JOIN":
+                self._process_join()
+            elif message[-1] == "EXIT":
+                self._process_exit()
+            elif message[-1] == "READY":
+                self._process_ready()
+
+        else:
+            if name != self._player_name and message[1] == "MOVE":
+                self._process_move(message[2:])
+            elif message[1] == "RESP":
+                return self._process_response(name, message[2:])
+            elif message[1] == "SINK":
+                self._process_sink(name, message[2:])
+        return None
+
+
