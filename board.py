@@ -7,6 +7,8 @@ from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKG
 
 
 class Board:
+    """Class representing the player's board. Contains ships and player's and opponent's guesses. """
+
     def __init__(self, screen):
         self.phase = "menu"  # Can be menu, placement, waiting, player turn, opponent turn
         self._screen = screen
@@ -24,7 +26,10 @@ class Board:
         self._player_name = None
         self._game_ready = False
 
+    # Initialisation functions
+
     def _init_guesses(self):
+        """ Create dict of empty lists for each ship, as well as misses."""
         guesses = {}
         for idx in self._player_ships:
             guesses[idx] = []
@@ -32,12 +37,16 @@ class Board:
         return guesses
 
     def _init_tiles(self):
+        """ Create dict of all coordinates occupied by a ship tile"""
         tiles = {}
         for idx, ship in self._player_ships.items():
             tiles[idx] = ship.get_array()
         return tiles
 
+    # Public functions
+
     def draw_board(self):
+        """ Draws the board to the pygame surface."""
         self._screen.fill(DARKGREY)
         if self.get_phase() != "menu":
             for x in range(1, 11):
@@ -47,17 +56,12 @@ class Board:
                 pygame.draw.line(self._screen, LIGHTGREY,
                                  (0, SCREEN_HEIGHT * x / 10),
                                  (SCREEN_WIDTH, SCREEN_HEIGHT * x / 10), 1)
-            if self.get_phase() == "player turn":
-                self._draw_guesses()
-                self._draw_opponent_ships()
 
-            elif self.get_phase() == "opponent turn":
-                self.draw_ships()
+            self._draw_ships()
+            if self.get_phase() != "placement":
                 self._draw_guesses()
 
-            elif self.get_phase() == "placement":
-                self.draw_ships()
-            elif self.get_phase() == "waiting": # need to redo this
+            if self.get_phase() == "waiting":  # need to redo this
                 pygame.draw.rect(self._screen, WHITE,
                                  pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
                                              (SCREEN_HEIGHT / 2) - (SCREEN_HEIGHT / 10),
@@ -78,47 +82,17 @@ class Board:
         self.phase = phase
 
     def valid_guess(self, guess):
-        # check if guess has already been made. Search all hit and miss containers.
+        """ Checks if guess has already been made. """
         for ship in self._get_guesses().values():
             if guess in ship:
                 return False
+        self._last_guess = guess
         return True
 
-    def _get_guesses(self):
-        if self.get_phase() == "opponent turn":
-            return self._opponent_guesses
-        elif self.get_phase() == "player turn":
-            return self._player_guesses
-
-    def _draw_guesses(self):
-        for name, guesses in self._get_guesses().items():
-            if name != "miss":
-                colour = RED
-            else:
-                colour = WHITE
-            for guess in guesses:
-                pygame.draw.circle(self._screen, colour,
-                                   (int((guess[0] + 0.5) * SCREEN_WIDTH / 10), int((guess[1] + 0.5) * SCREEN_HEIGHT / 10)),
-                                   SCREEN_WIDTH // 40)
-
-    def draw_ships(self):
-        for ship in self._player_ships.values():
-            ship.draw_ship(self._screen)
-
-    def _draw_opponent_ships(self):
-        for ship in self._opponent_ships.values():
-            ship.draw_ship(self._screen)
-
-    def change_turn(self):
-        print("changing turn")
-        if self.get_phase() == "opponent turn":
-            self.set_phase("player turn")
-        elif self.get_phase() == "player turn":
-            self.set_phase("opponent turn")
-        else:
-            return
+    # Placement phase public functions
 
     def move_ship(self, ship_idx, key):
+        """ Moves ship in the placement phase by user input """
         if key == pygame.K_r:
             self._player_ships[ship_idx].rotate()
         if key == pygame.K_UP:
@@ -131,6 +105,7 @@ class Board:
             self._player_ships[ship_idx].translate((1, 0))
 
     def place_ship(self, ship_idx):
+        """ Attempts to confirm the position of a piece in placement phase. Checks for collisions first. """
         if not self._player_ships[str(ship_idx)].check_collision(self._player_ships):
             self._player_ships[str(ship_idx)].set_status("placed")
             if ship_idx < 2:
@@ -140,8 +115,74 @@ class Board:
             return True
         return False
 
-    def guess(self, guess):
-        self._last_guess = guess
+    # Message processing public functions
+
+    def process_message(self, message):
+        """ Receives a message from the client and passes it to the relevant helper function """
+        name = message[0]
+        if len(message) == 2:
+            if message[-1] == "JOIN":
+                self._process_join(name)
+            elif message[-1] == "EXIT":
+                self._process_exit(name)
+            elif message[-1] == "READY":
+                self._process_ready(name)
+
+        else:
+            if name != self._player_name and message[1] == "MOVE":
+                return self._process_move(message[2:])
+            elif message[1] == "RESP":
+                self._process_response(name, message[2:])
+        return None
+
+    # Private functions
+
+    def _change_turn(self):
+        """ Changes game turn """
+        print("changing turn")
+        if self.get_phase() == "opponent turn":
+            self.set_phase("player turn")
+        elif self.get_phase() == "player turn":
+            self.set_phase("opponent turn")
+        else:
+            return
+
+    def _get_guesses(self):
+        """ Returns guesses made based on the current turn. """
+        if self.get_phase() == "opponent turn":
+            return self._opponent_guesses
+        elif self.get_phase() == "player turn":
+            return self._player_guesses
+
+    def _get_ships(self):
+        """ Returns ships to draw based on the current turn. """
+        if self.get_phase() == "opponent turn":
+            return self._opponent_ships
+        elif self.get_phase() == "player turn" or self.get_phase() == "placement":
+            return self._opponent_ships
+
+    # Private draw functions
+
+    def _draw_guesses(self):
+        """ Colours and draws guesses to the screen. """
+        for name, guesses in self._get_guesses().items():
+            if name != "miss":
+                colour = RED
+            else:
+                colour = WHITE
+            for guess in guesses:
+                pygame.draw.circle(self._screen, colour,
+                                   (int((guess[0] + 0.5) * SCREEN_WIDTH / 10),
+                                    int((guess[1] + 0.5) * SCREEN_HEIGHT / 10)),
+                                   SCREEN_WIDTH // 40)
+
+    def _draw_ships(self):
+        ships = self._get_ships()
+        for ship in ships.values():
+            ship.draw_ship(self._screen)
+
+
+    # Message processing private functions
 
     def _process_move(self, message):
         """ Receive a move (guess) from another player.
@@ -155,13 +196,9 @@ class Board:
                 continue
             if guess in ship:
                 response = "RESP,HIT,{}".format(idx)
-                # self._opponent_guesses[idx].append(guess)
                 # Plus one since the guesses will be updated later
                 if len(self._opponent_guesses[idx]) + 1 == len(ship):
                     response = "RESP,SINK,{}".format(idx)
-        # if response == "RESP,MISS":
-        #     self._opponent_guesses["miss"].append(guess)
-
         return response
 
     def _process_response(self, name, message):
@@ -185,7 +222,7 @@ class Board:
                 start, end = coords.index(min(coords)), coords.index(max(coords))
                 ships[message[1]] = Ship(sunk_ship[start], sunk_ship[end], PINK)
         time.sleep(1)
-        self.change_turn()
+        self._change_turn()
 
     def _process_join(self, name):
         if not self._player_name:
@@ -209,19 +246,3 @@ class Board:
             self.set_phase("waiting")
         self._game_ready = True
 
-    def process_message(self, message):
-        name = message[0]
-        if len(message) == 2:
-            if message[-1] == "JOIN":
-                self._process_join(name)
-            elif message[-1] == "EXIT":
-                self._process_exit(name)
-            elif message[-1] == "READY":
-                self._process_ready(name)
-
-        else:
-            if name != self._player_name and message[1] == "MOVE":
-                return self._process_move(message[2:])
-            elif message[1] == "RESP":
-                self._process_response(name, message[2:])
-        return None

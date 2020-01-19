@@ -24,7 +24,6 @@ if __name__ == "__main__":
                 if event.button == 1:
                     x, y = int(event.pos[0] / (SCREEN_WIDTH / 10)), int(event.pos[1] / (SCREEN_HEIGHT / 10))
                     if board.valid_guess((x,y)):
-                        board.guess((x,y))
                         client.send("MOVE,{},{}".format(x, y))
             elif event.type == pygame.KEYDOWN and board.get_phase() == "placement":
                 if event.key != pygame.K_RETURN:

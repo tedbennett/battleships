@@ -32,26 +32,6 @@ class Client:
                 response = self.board.process_message(message)
                 if response:
                     self.send(response)
-                # if len(message) == 2:
-                #     message_name = message[0]
-                #     if self.name is None:
-                #         self.name = message_name
-                #         print("Joined the game as Player {}".format(self.name))
-                #         self.board.process_join(self.name)
-                #     elif message[1] == "EXIT":
-                #         print("Player {} has left the game".format(message_name))
-                #         self.board.process_exit(message_name)
-                #     elif message[1] == "READY":
-                #         print("Player {} ready".format(message_name))
-                #         self.board.process_ready(message_name)
-                #
-                # if message[0] != self.name and message[1] == "MOVE":
-                #     response = self.board.process_guess(message[2:])
-                #     self.send("RESP,{}".format(response))
-                # elif message[1] == "RESP":
-                #     self.board.process_response(message[0], message[2])
-                # elif message[1] == "SINK":
-                #     self.board.process_sink(message[0], message[2])
             except OSError:
                 break
 
