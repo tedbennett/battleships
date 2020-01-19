@@ -10,14 +10,14 @@ class Board:
     """Class representing the player's board. Contains ships and player's and opponent's guesses. """
 
     def __init__(self, screen):
-        self.phase = "menu"  # Can be menu, placement, waiting, player turn, opponent turn
+        self.phase = "menu"  # Can be menu, placement, waiting, player turn, opponent turn, end
         self._screen = screen
-        self._player_ships = {'1': Ship((0, 0), (4, 0), WHITE),
-                              '2': Ship((0, 0), (3, 0), BLACK)}
-        # Ship((0, 0), (2, 0), BLACK),
-        # Ship((0, 0), (1, 0), BLACK),
-        # Ship((0, 0), (1, 0), BLACK)]
-
+        self._player_ships = {'1': Ship((0, 1), (4, 1), WHITE),
+                              '2': Ship((0, 1), (3, 1), BLACK)}
+                            # Ship((0, 0), (2, 0), BLACK),
+                            # Ship((0, 0), (1, 0), BLACK),
+                            # Ship((0, 0), (1, 0), BLACK)]
+        self.num_ships = len(self._player_ships)
         self._valid_guesses = {}
         self._opponent_guesses = self._init_guesses()
         self._player_guesses = self._init_guesses()
@@ -25,6 +25,7 @@ class Board:
         self._last_guess = None
         self._player_name = None
         self._game_ready = False
+        self._num_sunk = 0
 
     # Initialisation functions
 
@@ -51,17 +52,18 @@ class Board:
         if self.get_phase() != "menu":
             for x in range(1, 11):
                 pygame.draw.line(self._screen, LIGHTGREY,
-                                 (SCREEN_WIDTH * x / 10, 0),
-                                 (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT), 1)
+                                 (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT / 10),
+                                 (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT + SCREEN_HEIGHT / 10), 1)
                 pygame.draw.line(self._screen, LIGHTGREY,
                                  (0, SCREEN_HEIGHT * x / 10),
                                  (SCREEN_WIDTH, SCREEN_HEIGHT * x / 10), 1)
 
-            self._draw_ships()
-            if self.get_phase() != "placement":
-                self._draw_guesses()
-
-            if self.get_phase() == "waiting":  # need to redo this
+            if self.get_phase() != "waiting":
+                self._draw_ships()
+                if self.get_phase() != "placement":
+                    self._draw_guesses()
+            else:
+                # need to redo this
                 pygame.draw.rect(self._screen, WHITE,
                                  pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
                                              (SCREEN_HEIGHT / 2) - (SCREEN_HEIGHT / 10),
@@ -132,7 +134,10 @@ class Board:
             if name != self._player_name and message[1] == "MOVE":
                 return self._process_move(message[2:])
             elif message[1] == "RESP":
-                self._process_response(name, message[2:])
+                response = self._process_response(name, message[2:])
+                return response
+            elif message[1] == "END":
+                self._end_game(message[2])
         return None
 
     # Private functions
@@ -156,9 +161,9 @@ class Board:
 
     def _get_ships(self):
         """ Returns ships to draw based on the current turn. """
-        if self.get_phase() == "opponent turn":
-            return self._opponent_ships
-        elif self.get_phase() == "player turn" or self.get_phase() == "placement":
+        if self.get_phase() == "opponent turn" or self.get_phase() == "placement":
+            return self._player_ships
+        elif self.get_phase() == "player turn":
             return self._opponent_ships
 
     # Private draw functions
@@ -180,7 +185,6 @@ class Board:
         ships = self._get_ships()
         for ship in ships.values():
             ship.draw_ship(self._screen)
-
 
     # Message processing private functions
 
@@ -205,6 +209,7 @@ class Board:
         """ Receive response from server.
             Update game state hits and misses and change the turn.
             Can be treated as HIT, MISS or SINK. """
+        response = None
         if name == self._player_name:
             guesses = self._opponent_guesses
             ships = self._player_ships
@@ -221,8 +226,13 @@ class Board:
                 coords = [i[0] + i[1] for i in sunk_ship]
                 start, end = coords.index(min(coords)), coords.index(max(coords))
                 ships[message[1]] = Ship(sunk_ship[start], sunk_ship[end], PINK)
+                if name != self._player_name:
+                    self._num_sunk += 1
+                    if self._num_sunk == self.num_ships:
+                        response = "END,{}".format(name)
         time.sleep(1)
         self._change_turn()
+        return response
 
     def _process_join(self, name):
         if not self._player_name:
@@ -245,4 +255,9 @@ class Board:
         elif name == self._player_name:
             self.set_phase("waiting")
         self._game_ready = True
+
+    def _end_game(self, name=None):
+        if name:
+            self.set_phase("menu")
+            print("Player {} has won the game".format(name))
 

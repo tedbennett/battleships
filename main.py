@@ -7,7 +7,7 @@ from constant import SCREEN_WIDTH, SCREEN_HEIGHT
 if __name__ == "__main__":
     FPS = 30
     pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen = pygame.display.set_mode((SCREEN_WIDTH, int(SCREEN_HEIGHT * 11/10)))
     pygame.display.set_caption("Battleship")
     running = True
     board = Board(screen)
@@ -23,7 +23,7 @@ if __name__ == "__main__":
                 # Send guess if valid
                 if event.button == 1:
                     x, y = int(event.pos[0] / (SCREEN_WIDTH / 10)), int(event.pos[1] / (SCREEN_HEIGHT / 10))
-                    if board.valid_guess((x,y)):
+                    if y > 0 and board.valid_guess((x, y)):
                         client.send("MOVE,{},{}".format(x, y))
             elif event.type == pygame.KEYDOWN and board.get_phase() == "placement":
                 if event.key != pygame.K_RETURN:

@@ -50,12 +50,6 @@ class Ship:
         self._create_array(self._start, temp_end)
         self._end = temp_end
 
-    def get_size(self):
-        return self.size
-
-    def _set_colour(self, colour):
-        self._colour = colour
-
     def set_status(self, phase):
         self.status = phase
         if self.status == "not placed":
@@ -67,9 +61,9 @@ class Ship:
 
     def _check_boundaries(self, start, end):
         if (start[0] < 0 or start[0] > 9
-                or start[1] < 0 or start[1] > 9
+                or start[1] < 1 or start[1] > 10
                 or end[0] < 0 or end[0] > 9
-                or end[1] < 0 or end[1] > 9):
+                or end[1] < 1 or end[1] > 10):
             return False
         else:
             return True
@@ -81,6 +75,12 @@ class Ship:
                     if position in ship.get_array():
                         return True
         return False
+
+    def get_size(self):
+        return self.size
+
+    def _set_colour(self, colour):
+        self._colour = colour
 
     def get_array(self):
         return self.array
