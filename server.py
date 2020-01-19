@@ -34,7 +34,7 @@ class Server:
 
         while True:
             msg = client.recv(BUFSIZ)
-            if msg != bytes("{quit}", "utf8"):
+            if msg != bytes("EXIT", "utf8"):
                 self.broadcast(name, msg)
             else:
                 client.close()

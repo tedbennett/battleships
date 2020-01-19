@@ -40,6 +40,8 @@ class Client:
         print("sent {}".format(message))
         self.client_socket.send(bytes(message, "utf8"))
 
+    def close(self):
+        self.send("EXIT")
 
 if __name__ == "__main__":
     client = Client()

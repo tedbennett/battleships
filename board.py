@@ -9,14 +9,16 @@ from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKG
 class Board:
     """Class representing the player's board. Contains ships and player's and opponent's guesses. """
 
-    def __init__(self, screen):
-        self.phase = "menu"  # Can be menu, placement, waiting, player turn, opponent turn, end
+    def __init__(self, screen, font):
+        self.phase = "placement"  # Can be placement, waiting, player turn, opponent turn, end
         self._screen = screen
+        self._font = font
+        self._screen_text = [self._render_text("Placement phase")]
         self._player_ships = {'1': Ship((0, 1), (4, 1), WHITE),
                               '2': Ship((0, 1), (3, 1), BLACK)}
-                            # Ship((0, 0), (2, 0), BLACK),
-                            # Ship((0, 0), (1, 0), BLACK),
-                            # Ship((0, 0), (1, 0), BLACK)]
+        # Ship((0, 0), (2, 0), BLACK),
+        # Ship((0, 0), (1, 0), BLACK),
+        # Ship((0, 0), (1, 0), BLACK)]
         self.num_ships = len(self._player_ships)
         self._valid_guesses = {}
         self._opponent_guesses = self._init_guesses()
@@ -49,39 +51,28 @@ class Board:
     def draw_board(self):
         """ Draws the board to the pygame surface."""
         self._screen.fill(DARKGREY)
-        if self.get_phase() != "menu":
-            for x in range(1, 11):
-                pygame.draw.line(self._screen, LIGHTGREY,
-                                 (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT / 10),
-                                 (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT + SCREEN_HEIGHT / 10), 1)
-                pygame.draw.line(self._screen, LIGHTGREY,
-                                 (0, SCREEN_HEIGHT * x / 10),
-                                 (SCREEN_WIDTH, SCREEN_HEIGHT * x / 10), 1)
+        for x in range(1, 11):
+            pygame.draw.line(self._screen, LIGHTGREY,
+                             (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT / 10),
+                             (SCREEN_WIDTH * x / 10, SCREEN_HEIGHT + SCREEN_HEIGHT / 10), 1)
+            pygame.draw.line(self._screen, LIGHTGREY,
+                             (0, SCREEN_HEIGHT * x / 10),
+                             (SCREEN_WIDTH, SCREEN_HEIGHT * x / 10), 1)
 
-            if self.get_phase() != "waiting":
-                self._draw_ships()
-                if self.get_phase() != "placement":
-                    self._draw_guesses()
-            else:
-                # need to redo this
-                pygame.draw.rect(self._screen, WHITE,
-                                 pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
-                                             (SCREEN_HEIGHT / 2) - (SCREEN_HEIGHT / 10),
-                                             SCREEN_WIDTH / 3,
-                                             SCREEN_HEIGHT / 5))
+        if self.get_phase() != "waiting":
+            self._draw_ships()
+            if self.get_phase() != "placement":
+                self._draw_guesses()
 
-        else:
-            pygame.draw.rect(self._screen, WHITE,
-                             pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
-                                         (SCREEN_HEIGHT / 2) - (SCREEN_HEIGHT / 10),
-                                         SCREEN_WIDTH / 3,
-                                         SCREEN_HEIGHT / 5))
+        for text_object in self._screen_text:
+            self._screen.blit(text_object[0], (text_object[1], text_object[2]))
 
     def get_phase(self):
         return self.phase
 
-    def set_phase(self, phase):
+    def _set_phase(self, phase, name=None):
         self.phase = phase
+        self._update_text(name)
 
     def valid_guess(self, guess):
         """ Checks if guess has already been made. """
@@ -112,8 +103,6 @@ class Board:
             self._player_ships[str(ship_idx)].set_status("placed")
             if ship_idx < 2:
                 self._player_ships[str(ship_idx + 1)].set_status("moving")
-            else:
-                self.set_phase("player turn")
             return True
         return False
 
@@ -137,7 +126,7 @@ class Board:
                 response = self._process_response(name, message[2:])
                 return response
             elif message[1] == "END":
-                self._end_game(message[2])
+                self._set_phase("end", message[2])
         return None
 
     # Private functions
@@ -146,9 +135,9 @@ class Board:
         """ Changes game turn """
         print("changing turn")
         if self.get_phase() == "opponent turn":
-            self.set_phase("player turn")
+            self._set_phase("player turn")
         elif self.get_phase() == "player turn":
-            self.set_phase("opponent turn")
+            self._set_phase("opponent turn")
         else:
             return
 
@@ -185,6 +174,24 @@ class Board:
         ships = self._get_ships()
         for ship in ships.values():
             ship.draw_ship(self._screen)
+
+    def _render_text(self, text, x=SCREEN_WIDTH / 2, y=SCREEN_HEIGHT / 20, colour=WHITE):
+        text_surface, rect = self._font.render(text, colour)
+        return [text_surface, x - (rect.width / 2), y - (rect.height / 2)]
+
+    def _update_text(self, name):
+        if self.phase == "waiting":
+            self._screen_text = [self._render_text("Waiting for other player")]
+        elif self.phase == "player turn":
+            self._screen_text = [self._render_text("Your turn")]
+        elif self.phase == "opponent turn":
+            self._screen_text = [self._render_text("Opponent's turn")]
+        elif self.phase == "end":
+            if name:
+                self._screen_text =[self._render_text("Player {} wins!".format(name))]
+            else:
+                self._screen_text = [self._render_text("Other player left game".format(name))]
+            self._screen_text.append(self._render_text("BACK TO MENU", SCREEN_WIDTH / 2, SCREEN_HEIGHT * 11 / 10 / 2, BLACK))
 
     # Message processing private functions
 
@@ -243,21 +250,20 @@ class Board:
 
     def _process_exit(self, name):
         print("Player {} has left the game".format(name))
-        self.set_phase("menu")
+        self._set_phase("end")
 
     def _process_ready(self, name):
         if self._game_ready:
             self._valid_guesses = self._init_tiles()
             if self._player_name == '1':
-                self.set_phase("player turn")
+                self._set_phase("player turn")
             else:
-                self.set_phase("opponent turn")
+                self._set_phase("opponent turn")
         elif name == self._player_name:
-            self.set_phase("waiting")
+            self._set_phase("waiting")
         self._game_ready = True
 
     def _end_game(self, name=None):
         if name:
-            self.set_phase("menu")
+            self._set_phase("menu")
             print("Player {} has won the game".format(name))
-
