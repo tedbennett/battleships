@@ -28,18 +28,22 @@ class Client:
             try:
                 message = self.client_socket.recv(self.buffer_size).decode("utf8")
                 message = message.split(',')
+                print("received {}".format(message))
                 if len(message) == 2:
+                    message_name = message[0]
                     if self.name is None:
-                        self.name = message[0]
+                        self.name = message_name
                         print("Joined the game as Player {}".format(self.name))
                         self.board.process_join(self.name)
                     elif message[1] == "EXIT":
-                        exit_name = message[0]
-                        print("Player {} has left the game".format(exit_name))
-                        self.board.process_exit(exit_name)
+                        print("Player {} has left the game".format(message_name))
+                        self.board.process_exit(message_name)
+                    elif message[1] == "READY":
+                        print("Player {} ready".format(message_name))
+                        self.board.process_ready(message_name)
 
                 if message[0] != self.name and message[1] == "MOVE":
-                    response = self.board.process_guess(message[2:3])
+                    response = self.board.process_guess(message[2:])
                     self.send("RESP,{}".format(response))
                 elif message[0] == self.name and message[1] == "RESP":
                     self.board.process_response(message[2])
@@ -48,6 +52,7 @@ class Client:
 
     def send(self, message):
         """Handles sending of messages."""
+        print("sent {}".format(message))
         self.client_socket.send(bytes(message, "utf8"))
 
 

@@ -1,30 +1,30 @@
 # !/usr/bin/env python3
-import time
 import pygame
 from ship import Ship
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKGREY
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKGREY, RED
 
 
 class Board:
     def __init__(self, screen):
-        self.phase = "menu"  # Can be menu, placement, player turn, opponent turn
+        self.phase = "menu"  # Can be menu, placement, waiting, player turn, opponent turn
         self._screen = screen
         self._ships = [Ship((0, 0), (4, 0), WHITE),
-                       Ship((0, 0), (3, 0), BLACK),
-                       Ship((0, 0), (2, 0), BLACK),
-                       Ship((0, 0), (1, 0), BLACK),
-                       Ship((0, 0), (1, 0), BLACK)]
+                       Ship((0, 0), (3, 0), BLACK)]
+                       # Ship((0, 0), (2, 0), BLACK),
+                       # Ship((0, 0), (1, 0), BLACK),
+                       # Ship((0, 0), (1, 0), BLACK)]
 
-        self._ship_tiles = self.get_tiles()
+        self._ship_tiles = []
         self._opponent_guesses = {}
         self._player_guesses = {}
         self._last_guess = None
         self._player_name = None
+        self._game_ready = False
 
-    def get_tiles(self):
+    def _get_tiles(self):
         tiles = []
         for ship in self._ships:
-            tiles.append(ship.get_array())
+            tiles = tiles + ship.get_array()
         return tiles
 
     def draw_board(self):
@@ -46,6 +46,13 @@ class Board:
 
             elif self.get_phase() == "placement":
                 self.draw_ships()
+            elif self.get_phase() == "waiting":
+                pygame.draw.rect(self._screen, WHITE,
+                                 pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
+                                             (SCREEN_HEIGHT / 2) - (SCREEN_HEIGHT / 10),
+                                             SCREEN_WIDTH / 3,
+                                             SCREEN_HEIGHT / 5))
+
         else:
             pygame.draw.rect(self._screen, WHITE,
                              pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
@@ -69,8 +76,9 @@ class Board:
             return self._player_guesses
 
     def _draw_guesses(self):
-        for guess in self._get_guesses():
-            pygame.draw.circle(self._screen, WHITE,
+        for guess, value in self._get_guesses().items():
+            colour = RED if value == "HIT" else WHITE
+            pygame.draw.circle(self._screen, colour,
                                (int((guess[0] + 0.5) * SCREEN_WIDTH / 10), int((guess[1] + 0.5) * SCREEN_HEIGHT / 10)),
                                SCREEN_WIDTH // 40)
 
@@ -104,12 +112,15 @@ class Board:
     def place_ship(self, ship_idx):
         if not self._ships[ship_idx].check_collision(self._ships):
             self._ships[ship_idx].set_status("placed")
-            if ship_idx < 4:
+            if ship_idx < 1:
                 self._ships[ship_idx + 1].set_status("moving")
             else:
                 self.set_phase("player turn")
             return True
         return False
+
+    def guess(self, guess):
+        self._last_guess = guess
 
     def process_guess(self, message):
         guess = (int(message[0]), int(message[1]))
@@ -117,7 +128,7 @@ class Board:
             response = "HIT"
         else:
             response = "MISS"
-        self._opponent_guesses[self._last_guess] = response
+        self._opponent_guesses[guess] = response
         return response
 
     def process_response(self, message):
@@ -129,3 +140,14 @@ class Board:
     def process_exit(self, name):
         print("Player {} has left the game".format(name))
         self.set_phase("menu")
+
+    def process_ready(self, name):
+        if self._game_ready:
+            self._ship_tiles = self._get_tiles()
+            if self._player_name == '1':
+                self.set_phase("player turn")
+            else:
+                self.set_phase("opponent turn")
+        elif name == self._player_name:
+            self.set_phase("waiting")
+        self._game_ready = True
