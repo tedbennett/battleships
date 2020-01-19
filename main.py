@@ -46,6 +46,7 @@ if __name__ == "__main__":
                             <= event.pos[1] < (SCREEN_WIDTH / 2) + (SCREEN_WIDTH / 6)):
                         board = Board(screen, font)
                         client = Client(board)
+                        ship_index = 1
             if board:
                 if event.type == pygame.MOUSEBUTTONDOWN and board.get_phase() == "player turn":
                     # Send guess if valid
