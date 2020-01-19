@@ -75,7 +75,7 @@ class Ship:
             return True
 
     def check_collision(self, ships):
-        for ship in ships:
+        for ship in ships.values():
             if ship.get_status() == "placed":
                 for position in self.get_array():
                     if position in ship.get_array():

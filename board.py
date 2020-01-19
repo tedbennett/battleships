@@ -3,37 +3,37 @@ import time
 
 import pygame
 from ship import Ship
-from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKGREY, RED
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKGREY, RED, PINK
 
 
 class Board:
     def __init__(self, screen):
         self.phase = "menu"  # Can be menu, placement, waiting, player turn, opponent turn
         self._screen = screen
-        self._ships = [Ship((0, 0), (4, 0), WHITE),
-                       Ship((0, 0), (3, 0), BLACK)]
-                       # Ship((0, 0), (2, 0), BLACK),
-                       # Ship((0, 0), (1, 0), BLACK),
-                       # Ship((0, 0), (1, 0), BLACK)]
+        self._player_ships = {'1': Ship((0, 0), (4, 0), WHITE),
+                              '2': Ship((0, 0), (3, 0), BLACK)}
+        # Ship((0, 0), (2, 0), BLACK),
+        # Ship((0, 0), (1, 0), BLACK),
+        # Ship((0, 0), (1, 0), BLACK)]
 
-        self.  = None
+        self._valid_guesses = {}
         self._opponent_guesses = self._init_guesses()
         self._player_guesses = self._init_guesses()
-        self._opponent_ships = []
+        self._opponent_ships = {}
         self._last_guess = None
         self._player_name = None
         self._game_ready = False
 
     def _init_guesses(self):
         guesses = {}
-        for idx in range(len(self._ships)):
+        for idx in self._player_ships:
             guesses[idx] = []
         guesses["miss"] = []
         return guesses
 
     def _init_tiles(self):
         tiles = {}
-        for idx, ship in enumerate(self._ships):
+        for idx, ship in self._player_ships.items():
             tiles[idx] = ship.get_array()
         return tiles
 
@@ -57,7 +57,7 @@ class Board:
 
             elif self.get_phase() == "placement":
                 self.draw_ships()
-            elif self.get_phase() == "waiting":
+            elif self.get_phase() == "waiting": # need to redo this
                 pygame.draw.rect(self._screen, WHITE,
                                  pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
                                              (SCREEN_HEIGHT / 2) - (SCREEN_HEIGHT / 10),
@@ -78,7 +78,11 @@ class Board:
         self.phase = phase
 
     def valid_guess(self, guess):
-        return guess not in self._get_guesses()
+        # check if guess has already been made. Search all hit and miss containers.
+        for ship in self._get_guesses().values():
+            if guess in ship:
+                return False
+        return True
 
     def _get_guesses(self):
         if self.get_phase() == "opponent turn":
@@ -87,18 +91,22 @@ class Board:
             return self._player_guesses
 
     def _draw_guesses(self):
-        for guess, value in self._get_guesses().items():
-            colour = RED if value == "HIT" else WHITE
-            pygame.draw.circle(self._screen, colour,
-                               (int((guess[0] + 0.5) * SCREEN_WIDTH / 10), int((guess[1] + 0.5) * SCREEN_HEIGHT / 10)),
-                               SCREEN_WIDTH // 40)
+        for name, guesses in self._get_guesses().items():
+            if name != "miss":
+                colour = RED
+            else:
+                colour = WHITE
+            for guess in guesses:
+                pygame.draw.circle(self._screen, colour,
+                                   (int((guess[0] + 0.5) * SCREEN_WIDTH / 10), int((guess[1] + 0.5) * SCREEN_HEIGHT / 10)),
+                                   SCREEN_WIDTH // 40)
 
     def draw_ships(self):
-        for ship in self._ships:
+        for ship in self._player_ships.values():
             ship.draw_ship(self._screen)
 
     def _draw_opponent_ships(self):
-        for ship in self._opponent_ships:
+        for ship in self._opponent_ships.values():
             ship.draw_ship(self._screen)
 
     def change_turn(self):
@@ -112,21 +120,21 @@ class Board:
 
     def move_ship(self, ship_idx, key):
         if key == pygame.K_r:
-            self._ships[ship_idx].rotate()
+            self._player_ships[ship_idx].rotate()
         if key == pygame.K_UP:
-            self._ships[ship_idx].translate((0, -1))
+            self._player_ships[ship_idx].translate((0, -1))
         if key == pygame.K_DOWN:
-            self._ships[ship_idx].translate((0, 1))
+            self._player_ships[ship_idx].translate((0, 1))
         if key == pygame.K_LEFT:
-            self._ships[ship_idx].translate((-1, 0))
+            self._player_ships[ship_idx].translate((-1, 0))
         if key == pygame.K_RIGHT:
-            self._ships[ship_idx].translate((1, 0))
+            self._player_ships[ship_idx].translate((1, 0))
 
     def place_ship(self, ship_idx):
-        if not self._ships[ship_idx].check_collision(self._ships):
-            self._ships[ship_idx].set_status("placed")
-            if ship_idx < 1:
-                self._ships[ship_idx + 1].set_status("moving")
+        if not self._player_ships[str(ship_idx)].check_collision(self._player_ships):
+            self._player_ships[str(ship_idx)].set_status("placed")
+            if ship_idx < 2:
+                self._player_ships[str(ship_idx + 1)].set_status("moving")
             else:
                 self.set_phase("player turn")
             return True
@@ -135,62 +143,64 @@ class Board:
     def guess(self, guess):
         self._last_guess = guess
 
-    def process_guess(self, message):
+    def _process_move(self, message):
+        """ Receive a move (guess) from another player.
+            Check if it has hit any ships. Then see if it has sunk any.
+            Update any guess lists and return the response. """
         guess = (int(message[0]), int(message[1]))
-        response = "MISS"
-        for idx, ship in self._ship_tiles.items():
+        self._last_guess = guess
+        response = "RESP,MISS"
+        for idx, ship in self._valid_guesses.items():
+            if idx == "miss":
+                continue
             if guess in ship:
-                response = "HIT,{}".format(idx)
-                self._opponent_guesses[idx].append(guess)
-                if len(self._opponent_guesses[idx]) == len(ship):
-                    response = "SINK,{}".format(idx)
-        if response == "MISS":
-            self._opponent_guesses["miss"].append(guess)
+                response = "RESP,HIT,{}".format(idx)
+                # self._opponent_guesses[idx].append(guess)
+                # Plus one since the guesses will be updated later
+                if len(self._opponent_guesses[idx]) + 1 == len(ship):
+                    response = "RESP,SINK,{}".format(idx)
+        # if response == "RESP,MISS":
+        #     self._opponent_guesses["miss"].append(guess)
 
         return response
 
-    def process_response(self, name, message):
+    def _process_response(self, name, message):
         """ Receive response from server.
             Update game state hits and misses and change the turn.
-            Can be treated as HIT, MISS or SINK."""
-        if name != self._player_name:
-            if message == "MISS":
-                self._player_guesses["miss"] = self._last_guess
-            elif message == "SINK":
+            Can be treated as HIT, MISS or SINK. """
+        if name == self._player_name:
+            guesses = self._opponent_guesses
+            ships = self._player_ships
+        else:
+            guesses = self._player_guesses
+            ships = self._opponent_ships
 
-            self._player_guesses[self._last_guess] = message
+        if message[0] == "MISS":
+            guesses["miss"].append(self._last_guess)
+        else:
+            guesses[message[1]].append(self._last_guess)
+            if message[0] == "SINK":
+                sunk_ship = guesses[message[1]]
+                coords = [i[0] + i[1] for i in sunk_ship]
+                start, end = coords.index(min(coords)), coords.index(max(coords))
+                ships[message[1]] = Ship(sunk_ship[start], sunk_ship[end], PINK)
         time.sleep(1)
         self.change_turn()
 
-    def _process_sink(self, name, message):
-        """ Update list of guesses of sunk ship
-            Search for start and end and create a new ship to be displayed as sunk
-        """
-        if name == self._player_name:
-            guesses =  self._opponent_guesses
-            ships = self._ships
+    def _process_join(self, name):
+        if not self._player_name:
+            self._player_name = name
+            print("Joined the game as Player {}".format(name))
         else:
-            guesses =  self._player_guesses
-            ships = self._opponent_ships
+            print("Player {} has joined the game".format(name))
 
-        sunk_ship = guesses[message]
-        sunk_ship.append(self._last_guess)
-        coords = [i[0] + i[1] for i in sunk_ship]
-        start, end = coords.index(min(coords)), coords.index(max(coords))
-        if name == self._player_name:
-            self._ships
-        ships.append(Ship(sunk_ship[start], sunk_ship[end], LIGHTGREY))
-
-    def process_join(self, name):
-        self._player_name = name
-
-    def process_exit(self, name):
+    def _process_exit(self, name):
         print("Player {} has left the game".format(name))
         self.set_phase("menu")
 
-    def process_ready(self, name):
+    def _process_ready(self, name):
         if self._game_ready:
-            self._ship_tiles = self._init_tiles()
+            self._valid_guesses = self._init_tiles()
             if self._player_name == '1':
                 self.set_phase("player turn")
             else:
@@ -199,24 +209,19 @@ class Board:
             self.set_phase("waiting")
         self._game_ready = True
 
-
     def process_message(self, message):
         name = message[0]
         if len(message) == 2:
             if message[-1] == "JOIN":
-                self._process_join()
+                self._process_join(name)
             elif message[-1] == "EXIT":
-                self._process_exit()
+                self._process_exit(name)
             elif message[-1] == "READY":
-                self._process_ready()
+                self._process_ready(name)
 
         else:
             if name != self._player_name and message[1] == "MOVE":
-                self._process_move(message[2:])
+                return self._process_move(message[2:])
             elif message[1] == "RESP":
-                return self._process_response(name, message[2:])
-            elif message[1] == "SINK":
-                self._process_sink(name, message[2:])
+                self._process_response(name, message[2:])
         return None
-
-
