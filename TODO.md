@@ -21,12 +21,14 @@
  - ~~Add a header row with info about the state of the game, e.g opponents turn.~~ DONE
     - ~~Ship coordinates~~
     - ~~Collision checking~~
- - Add menu screen
-   - Separate from Board class so a new object (and Client) is instantiated whenever a game is started
+ - ~~Add menu screen~~ DONE, could use a title
+   - ~~Separate from Board class so a new object (and Client) is instantiated whenever a game is started~~
  
- - Add end game functionality
-    - "You Win/Lose" icon
-    - Return to main menu
-    - The other player has left the game
+ - Get restart of game working
+ 
+ - ~~Add end game functionality~~ DONE
+    - ~~"You Win/Lose" icon~~
+    - ~~Return to main menu~~
+    - ~~The other player has left the game~~
     
   - Possibly enforce separation between Client and Board    

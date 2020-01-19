@@ -68,7 +68,8 @@ if __name__ == "__main__":
                             < (SCREEN_HEIGHT / 2) + (SCREEN_HEIGHT / 10)
                             and (SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6)
                             <= event.pos[1] < (SCREEN_WIDTH / 2) + (SCREEN_WIDTH / 6)):
-                        del client
-                        del board
+                        client.close()
+                        client = None
+                        board = None
 
     pygame.quit()

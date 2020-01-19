@@ -59,10 +59,16 @@ class Board:
                              (0, SCREEN_HEIGHT * x / 10),
                              (SCREEN_WIDTH, SCREEN_HEIGHT * x / 10), 1)
 
-        if self.get_phase() != "waiting":
+        if self.get_phase() not in ["end", "waiting"]:
             self._draw_ships()
             if self.get_phase() != "placement":
                 self._draw_guesses()
+        elif self.get_phase() == "end":
+            pygame.draw.rect(self._screen, WHITE,
+                             pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 4),
+                                         (SCREEN_HEIGHT * 11 / 10 / 2) - (SCREEN_HEIGHT / 10),
+                                         SCREEN_WIDTH / 2,
+                                         SCREEN_HEIGHT / 5))
 
         for text_object in self._screen_text:
             self._screen.blit(text_object[0], (text_object[1], text_object[2]))
