@@ -1,4 +1,6 @@
 # !/usr/bin/env python3
+import time
+
 import pygame
 from ship import Ship
 from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, LIGHTGREY, DARKGREY, RED
@@ -14,17 +16,25 @@ class Board:
                        # Ship((0, 0), (1, 0), BLACK),
                        # Ship((0, 0), (1, 0), BLACK)]
 
-        self._ship_tiles = []
-        self._opponent_guesses = {}
-        self._player_guesses = {}
+        self._ship_tiles = None
+        self._opponent_guesses = self._init_guesses()
+        self._player_guesses = self._init_guesses()
+        self._opponent_ships = []
         self._last_guess = None
         self._player_name = None
         self._game_ready = False
 
-    def _get_tiles(self):
-        tiles = []
-        for ship in self._ships:
-            tiles = tiles + ship.get_array()
+    def _init_guesses(self):
+        guesses = {}
+        for idx in range(len(self._ships)):
+            guesses[idx] = []
+        guesses["miss"] = []
+        return guesses
+
+    def _init_tiles(self):
+        tiles = {}
+        for idx, ship in enumerate(self._ships):
+            tiles[idx] = ship.get_array()
         return tiles
 
     def draw_board(self):
@@ -39,6 +49,7 @@ class Board:
                                  (SCREEN_WIDTH, SCREEN_HEIGHT * x / 10), 1)
             if self.get_phase() == "player turn":
                 self._draw_guesses()
+                self._draw_opponent_ships()
 
             elif self.get_phase() == "opponent turn":
                 self.draw_ships()
@@ -86,14 +97,16 @@ class Board:
         for ship in self._ships:
             ship.draw_ship(self._screen)
 
+    def _draw_opponent_ships(self):
+        for ship in self._opponent_ships:
+            ship.draw_ship(self._screen)
+
     def change_turn(self):
         print("changing turn")
         if self.get_phase() == "opponent turn":
             self.set_phase("player turn")
-            pygame.display.set_caption("Battleship - Player Turn")
         elif self.get_phase() == "player turn":
             self.set_phase("opponent turn")
-            pygame.display.set_caption("Battleship - Opponent's Turn")
         else:
             return
 
@@ -143,7 +156,7 @@ class Board:
 
     def process_ready(self, name):
         if self._game_ready:
-            self._ship_tiles = self._get_tiles()
+            self._ship_tiles = self._init_tiles()
             if self._player_name == '1':
                 self.set_phase("player turn")
             else:

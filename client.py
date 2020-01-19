@@ -45,8 +45,10 @@ class Client:
                 if message[0] != self.name and message[1] == "MOVE":
                     response = self.board.process_guess(message[2:])
                     self.send("RESP,{}".format(response))
-                elif message[0] == self.name and message[1] == "RESP":
-                    self.board.process_response(message[2])
+                elif message[1] == "RESP":
+                    self.board.process_response(message[0], message[2])
+                elif message[1] == "SINK":
+                    self.board.process_sink(message[0], message[2])
             except OSError:
                 break
 
