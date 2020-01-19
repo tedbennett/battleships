@@ -6,7 +6,7 @@ from client import Client
 from constant import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BLACK, DARKGREY
 
 
-def draw_menu(surface, font):
+def draw_menu(surface, font, title_font):
     surface.fill(DARKGREY)
     pygame.draw.rect(surface, WHITE,
                      pygame.Rect((SCREEN_WIDTH / 2) - (SCREEN_WIDTH / 6),
@@ -16,6 +16,10 @@ def draw_menu(surface, font):
     text_surface, rect = font.render("START", BLACK)
     surface.blit(text_surface,
                  ((SCREEN_WIDTH / 2) - (rect.width / 2), (SCREEN_HEIGHT * 11 / 10 / 2) - (rect.height / 2)))
+    text_surface, rect = title_font.render("BATTLESHIPS", WHITE)
+    surface.blit(text_surface,
+                 ((SCREEN_WIDTH / 2) - (rect.width / 2), (SCREEN_HEIGHT / 4) - (rect.height / 2)))
+
 
 
 if __name__ == "__main__":
@@ -23,6 +27,7 @@ if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, int(SCREEN_HEIGHT * 11 / 10)))
     font = pygame.freetype.SysFont("Courier", 24)
+    title_font = pygame.freetype.SysFont("Courier", 36)
     pygame.display.set_caption("Battleship")
     running = True
     board = None
@@ -32,7 +37,7 @@ if __name__ == "__main__":
         if board:
             board.draw_board()
         else:
-            draw_menu(screen, font)
+            draw_menu(screen, font, title_font)
         pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
